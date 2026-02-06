@@ -1,0 +1,44 @@
+{
+    "name": "phaser-test-utils",
+    "version": "0.1.0",
+    "description": "Headless layout & UI testing framework for Phaser",
+    "license": "MIT",
+    "files": [
+        "dist"
+    ],
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        },
+        "./setup": {
+            "types": "./dist/vitest.setup.d.ts",
+            "import": "./dist/vitest.setup.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "lint": "oxlint && oxfmt --check && tsc --noEmit",
+        "lint:fix": "oxlint --fix && oxfmt --write",
+        "prepublishOnly": "npm run lint && npm run build",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "devDependencies": {
+        "@types/node": "^22.0.0",
+        "canvas": "^3.2.1",
+        "jsdom": "^28.0.0",
+        "oxfmt": "^0.28.0",
+        "oxlint": "^1.43.0",
+        "phaser": "^4.0.0-rc.6",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18"
+    },
+    "peerDependencies": {
+        "phaser": ">=3.60.0",
+        "vitest": ">=4.0.0"
+    }
+}
