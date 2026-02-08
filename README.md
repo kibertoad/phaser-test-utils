@@ -50,6 +50,82 @@ The setup file registers vitest custom matchers. If you don't want the matchers,
 
 **Note:** The `jsdom` environment is required since Phaser needs DOM APIs (`document`, `window`, `Image`, `HTMLCanvasElement`, etc.) to boot.
 
+### Monorepo / Hoisted node_modules
+
+In monorepos where `node_modules` is hoisted to the workspace root, `path.resolve(__dirname, "node_modules/phaser/...")` won't work because phaser lives in the root `node_modules`, not the package's local one. Use `createRequire` to resolve the phaser path reliably:
+
+```ts
+import { defineConfig } from "vitest/config";
+import { createRequire } from "module";
+import path from "path";
+
+const require = createRequire(import.meta.url);
+const phaserDir = path.dirname(require.resolve("phaser/package.json"));
+
+export default defineConfig({
+    resolve: {
+        alias: {
+            phaser: path.join(phaserDir, "dist/phaser.esm.js"),
+        },
+    },
+    test: {
+        environment: "jsdom",
+        setupFiles: ["phaser-test-utils/setup"],
+    },
+});
+```
+
+### Separate vitest config for scene tests
+
+If your project mixes standard unit tests (node environment) with Phaser scene tests (jsdom environment), use a separate config file to avoid environment conflicts:
+
+**vitest.scene.config.ts** — for scene tests only:
+```ts
+import { defineConfig } from "vitest/config";
+import { createRequire } from "module";
+import path from "path";
+
+const require = createRequire(import.meta.url);
+const phaserDir = path.dirname(require.resolve("phaser/package.json"));
+
+export default defineConfig({
+    resolve: {
+        alias: {
+            phaser: path.join(phaserDir, "dist/phaser.esm.js"),
+        },
+    },
+    test: {
+        environment: "jsdom",
+        include: ["src/**/*.scene-test.ts"],
+        setupFiles: ["phaser-test-utils/setup"],
+        testTimeout: 15000,
+        server: {
+            deps: {
+                inline: ["phaser", "phaser-test-utils"],
+            },
+        },
+    },
+});
+```
+
+**vitest.config.ts** — for standard unit tests (unchanged):
+```ts
+export default defineConfig({
+    test: {
+        environment: "node",
+        include: ["src/**/*.test.ts"],
+    },
+});
+```
+
+Run them separately:
+```bash
+npx vitest run                                    # unit tests
+npx vitest run --config vitest.scene.config.ts    # scene tests
+```
+
+**Why `server.deps.inline`?** By default, vitest may resolve Phaser via its CJS `main` entry (`src/phaser.js`) instead of the aliased ESM dist, causing `Cannot find module 'phaser3spectorjs'` errors. Inlining both `phaser` and `phaser-test-utils` ensures Vite processes them through its resolver where the alias takes effect.
+
 ### Import style
 
 Phaser's ESM dist uses named exports. Always import as:
